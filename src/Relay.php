@@ -16,8 +16,8 @@ use Spiral\Goridge\Protocol\Protocol;
 use Spiral\Goridge\Protocol\ProtocolInterface;
 use Spiral\Goridge\Relay\Factory;
 use Spiral\Goridge\Relay\Payload;
-use Spiral\Goridge\Relay\SocketRelay\SocketProvider;
-use Spiral\Goridge\Relay\StreamRelay\StreamProvider;
+use Spiral\Goridge\Relay\SocketProvider;
+use Spiral\Goridge\Relay\StreamProvider;
 
 abstract class Relay implements RelayInterface, SendPackageRelayInterface, StringableRelayInterface
 {

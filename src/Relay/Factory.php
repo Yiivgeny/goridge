@@ -12,8 +12,8 @@ declare(strict_types=1);
 namespace Spiral\Goridge\Relay;
 
 use Spiral\Goridge\Exception\RelayFactoryException;
-use Spiral\Goridge\Relay\SocketRelay\SocketProvider;
-use Spiral\Goridge\Relay\StreamRelay\StreamProvider;
+use Spiral\Goridge\Relay\SocketProvider;
+use Spiral\Goridge\Relay\StreamProvider;
 use Spiral\Goridge\RelayInterface;
 
 class Factory implements FactoryInterface

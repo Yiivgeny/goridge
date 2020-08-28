@@ -9,9 +9,8 @@
 
 declare(strict_types=1);
 
-namespace Spiral\Goridge\Relay\SocketRelay;
+namespace Spiral\Goridge\Relay;
 
-use Spiral\Goridge\Relay\Provider;
 use Spiral\Goridge\RelayInterface;
 use Spiral\Goridge\SocketRelay;
 

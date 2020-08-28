@@ -9,15 +9,26 @@
 
 declare(strict_types=1);
 
-namespace Spiral\Goridge\Relay\StreamRelay;
+namespace Spiral\Goridge\Relay;
 
 use Spiral\Goridge\Exception\RelayFactoryException;
-use Spiral\Goridge\Relay\Provider;
 use Spiral\Goridge\RelayInterface;
 use Spiral\Goridge\StreamRelay;
 
 class StreamProvider extends Provider
 {
+    /**
+     * An alias of {@see StreamProvider::PROTOCOL_PHP} naming.
+     *
+     * @var string
+     */
+    public const PROTOCOL_PIPES = 'pipes';
+
+    /**
+     * @var string
+     */
+    public const PROTOCOL_PHP = 'php';
+
     /**
      * @var string
      */
@@ -37,18 +48,6 @@ class StreamProvider extends Provider
      * @var string
      */
     private const SIGNATURE_DELIMITER = ':';
-
-    /**
-     * An alias of {@see StreamProvider::PROTOCOL_PHP} naming.
-     *
-     * @var string
-     */
-    public const PROTOCOL_PIPES = 'pipes';
-
-    /**
-     * @var string
-     */
-    public const PROTOCOL_PHP = 'php';
 
     /**
      * {@inheritDoc}

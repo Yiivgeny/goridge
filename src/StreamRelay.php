@@ -1,14 +1,19 @@
 <?php
 
 /**
- * Dead simple, high performance, drop-in bridge to Golang RPC with zero dependencies
+ * This file is part of Goridge package.
  *
- * @author Wolfy-J
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
 
 declare(strict_types=1);
 
 namespace Spiral\Goridge;
+
+use Spiral\Goridge\Exception\InvalidArgumentException;
+use Spiral\Goridge\Exception\PrefixException;
+use Spiral\Goridge\Exception\TransportException;
 
 /**
  * Communicates with remote server/client over streams using byte payload:
@@ -19,173 +24,193 @@ namespace Spiral\Goridge;
  * prefix:
  * [ flag       ][ message length, unsigned int 64bits, LittleEndian ]
  */
-class StreamRelay implements RelayInterface, SendPackageRelayInterface
+class StreamRelay extends Relay implements SendPackageRelayInterface
 {
-    /** @var resource */
+    /**
+     * @var string
+     */
+    private const ERROR_INVALID_RESOURCE_TYPE = '%s must be a valid resource type, but %s given';
+
+    /**
+     * @var string
+     */
+    private const ERROR_NOT_READABLE = 'Input resource stream must be readable';
+
+    /**
+     * @var string
+     */
+    private const ERROR_NOT_WRITABLE = 'Output resource stream must be readable';
+
+    /**
+     * Input stream resource.
+     *
+     * @var resource
+     */
     private $in;
 
-    /** @var resource */
+    /**
+     * Output stream resource.
+     *
+     * @var resource
+     */
     private $out;
 
     /**
      * Example:
-     * $relay = new StreamRelay(STDIN, STDOUT);
      *
-     * @param resource $in  Must be readable.
+     * <code>
+     *  $relay = new StreamRelay(STDIN, STDOUT);
+     * </code>
+     *
+     * @param resource $in Must be readable.
      * @param resource $out Must be writable.
      *
-     * @throws Exceptions\InvalidArgumentException
+     * @throws InvalidArgumentException
      */
     public function __construct($in, $out)
     {
-        if (!is_resource($in) || get_resource_type($in) !== 'stream') {
-            throw new Exceptions\InvalidArgumentException('expected a valid `in` stream resource');
-        }
+        $this->assertStreamResource($in, 'Input stream');
+        $this->assertResourceIsReadable($in);
 
-        if (!$this->assertReadable($in)) {
-            throw new Exceptions\InvalidArgumentException('resource `in` must be readable');
-        }
+        $this->assertStreamResource($out, 'Output stream');
+        $this->assertResourceIsWritable($out);
 
-        if (!is_resource($out) || get_resource_type($out) !== 'stream') {
-            throw new Exceptions\InvalidArgumentException('expected a valid `out` stream resource');
-        }
-
-        if (!$this->assertWritable($out)) {
-            throw new Exceptions\InvalidArgumentException('resource `out` must be writable');
-        }
-
-        $this->in = $in;
-        $this->out = $out;
+        [$this->in, $this->out] = [$in, $out];
     }
 
     /**
-     * Send message package with header and body.
+     * Checks that the resource is readable and throws an exception otherwise.
      *
-     * @param string   $headerPayload
-     * @param int|null $headerFlags
-     * @param string   $bodyPayload
-     * @param int|null $bodyFlags
-     * @return self
+     * @param resource $resource
      */
-    public function sendPackage(
-        string $headerPayload,
-        ?int $headerFlags,
-        string $bodyPayload,
-        ?int $bodyFlags = null
-    ): self {
-        $headerPackage = packMessage($headerPayload, $headerFlags);
-        $bodyPackage = packMessage($bodyPayload, $bodyFlags);
-        if ($headerPackage === null || $bodyPackage === null) {
-            throw new Exceptions\TransportException('unable to send payload with PAYLOAD_NONE flag');
+    private function assertResourceIsReadable($resource): void
+    {
+        if (! $this->isReadable($resource)) {
+            throw new InvalidArgumentException(self::ERROR_NOT_READABLE, 0x03);
         }
-
-        if (
-            fwrite(
-                $this->out,
-                $headerPackage['body'] . $bodyPackage['body'],
-                34 + $headerPackage['size'] + $bodyPackage['size']
-            ) === false
-        ) {
-            throw new Exceptions\TransportException('unable to write payload to the stream');
-        }
-
-        return $this;
     }
 
     /**
-     * {@inheritdoc}
-     * @return self
+     * Checks that the resource is writable and throws an exception otherwise.
+     *
+     * @param resource $resource
      */
-    public function send(string $payload, ?int $flags = null): self
+    private function assertResourceIsWritable($resource): void
     {
-        $package = packMessage($payload, $flags);
-        if ($package === null) {
-            throw new Exceptions\TransportException('unable to send payload with PAYLOAD_NONE flag');
+        if (! $this->isWritable($resource)) {
+            throw new InvalidArgumentException(self::ERROR_NOT_WRITABLE, 0x04);
         }
-
-        if (fwrite($this->out, $package['body'], 17 + $package['size']) === false) {
-            throw new Exceptions\TransportException('unable to write payload to the stream');
-        }
-
-        return $this;
     }
 
     /**
-     * {@inheritdoc}
+     * Checks that the resource is a valid stream resource.
+     *
+     * @param resource|mixed $resource
+     * @param string $expected
      */
-    public function receiveSync(?int &$flags = null): ?string
+    private function assertStreamResource($resource, string $expected): void
     {
-        $prefix = $this->fetchPrefix();
-        $flags = $prefix['flags'];
+        if (\is_resource($resource)) {
+            return;
+        }
 
-        $result = '';
-        if ($prefix['size'] !== 0) {
-            $leftBytes = $prefix['size'];
+        $message = \sprintf(self::ERROR_INVALID_RESOURCE_TYPE, $expected, \get_debug_type($resource));
 
-            //Add ability to write to stream in a future
-            while ($leftBytes > 0) {
-                $buffer = fread($this->in, min($leftBytes, self::BUFFER_SIZE));
-                if ($buffer === false) {
-                    throw new Exceptions\TransportException('error reading payload from the stream');
-                }
+        try {
+            //
+            // Note: get_resource_type() can throw the TypeError in the case
+            // that an invalid argument is passed (for example, an array)
+            //
+            $type = @\get_resource_type($resource);
 
-                $result .= $buffer;
-                $leftBytes -= strlen($buffer);
+            if (\is_string($type) && $type === 'stream') {
+                return;
             }
+        } catch (\TypeError $e) {
+            throw new InvalidArgumentException($message, 0x01, $e);
         }
 
-        return ($result !== '') ? $result : null;
-    }
-
-    /**
-     * @return array Prefix [flag, length]
-     *
-     * @throws Exceptions\PrefixException
-     */
-    private function fetchPrefix(): array
-    {
-        $prefixBody = fread($this->in, 17);
-        if ($prefixBody === false) {
-            throw new Exceptions\PrefixException('unable to read prefix from the stream');
-        }
-
-        $result = unpack('Cflags/Psize/Jrevs', $prefixBody);
-        if (!is_array($result)) {
-            throw new Exceptions\PrefixException('invalid prefix');
-        }
-
-        if ($result['size'] !== $result['revs']) {
-            throw new Exceptions\PrefixException('invalid prefix (checksum)');
-        }
-
-        return $result;
+        throw new InvalidArgumentException($message, 0x02);
     }
 
     /**
      * Checks if stream is readable.
      *
      * @param resource $stream
-     *
      * @return bool
      */
-    private function assertReadable($stream): bool
+    private function isReadable($stream): bool
     {
-        $meta = stream_get_meta_data($stream);
+        if (! \is_resource($stream)) {
+            return false;
+        }
 
-        return in_array($meta['mode'], ['r', 'rb', 'r+', 'rb+', 'w+', 'wb+', 'a+', 'ab+', 'x+', 'c+', 'cb+'], true);
+        $mode = \stream_get_meta_data($stream)['mode'];
+
+        return (
+            \strpos($mode, 'r') !== false ||
+            \strpos($mode, '+') !== false
+        );
     }
 
     /**
      * Checks if stream is writable.
      *
      * @param resource $stream
-     *
      * @return bool
      */
-    private function assertWritable($stream): bool
+    private function isWritable($stream): bool
     {
-        $meta = stream_get_meta_data($stream);
+        if (! \is_resource($stream)) {
+            return false;
+        }
 
-        return !in_array($meta['mode'], ['r', 'rb'], true);
+        $mode = \stream_get_meta_data($stream)['mode'];
+
+        return (
+            \strpos($mode, 'x') !== false ||
+            \strpos($mode, 'w') !== false ||
+            \strpos($mode, 'c') !== false ||
+            \strpos($mode, 'a') !== false ||
+            \strpos($mode, '+') !== false
+        );
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function __toString(): string
+    {
+        $input = \str_replace('php://', '', \stream_get_meta_data($this->in)['uri']);
+        $output = \str_replace('php://', '', \stream_get_meta_data($this->out)['uri']);
+
+        return 'pipes://' . $input . ':' . $output;
+    }
+
+    /**
+     * @param string $body
+     * @param int $length
+     */
+    protected function write(string $body, int $length): void
+    {
+        $status = @\fwrite($this->out, $body, $length);
+
+        if ($status === false) {
+            throw new TransportException('Unable to write payload to the resource stream');
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    protected function read(int $length): string
+    {
+        $body = @\fread($this->in, $length);
+
+        if ($body === false || $length !== \strlen($body)) {
+            throw new PrefixException('Unable to read from resource stream');
+        }
+
+        return $body;
     }
 }

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Spiral\Tests\Legacy;
+namespace Spiral\Tests\Goridge\Legacy;
 
 use Spiral\Goridge\RelayInterface;
 

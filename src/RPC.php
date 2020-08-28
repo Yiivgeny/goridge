@@ -1,15 +1,19 @@
 <?php
 
 /**
- * Dead simple, high performance, drop-in bridge to Golang RPC with zero dependencies
+ * This file is part of Goridge package.
  *
- * @author Wolfy-J
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
 
 declare(strict_types=1);
 
 namespace Spiral\Goridge;
 
+use Spiral\Goridge\Exception\RelayException;
+use Spiral\Goridge\Exception\ServiceException;
+use Spiral\Goridge\Exception\TransportException;
 use Spiral\Goridge\RelayInterface as Relay;
 
 /**
@@ -38,17 +42,17 @@ class RPC
      *
      * @return mixed
      *
-     * @throws Exceptions\RelayException
-     * @throws Exceptions\ServiceException
+     * @throws RelayException
+     * @throws ServiceException
      */
     public function call(string $method, $payload, int $flags = 0)
     {
-        $header = $method . pack('P', $this->seq);
+        $header = $method . \pack('P', $this->seq);
         if (!$this->relay instanceof SendPackageRelayInterface) {
             $this->relay->send($header, Relay::PAYLOAD_CONTROL | Relay::PAYLOAD_RAW);
         }
 
-        if ($flags & Relay::PAYLOAD_RAW && is_scalar($payload)) {
+        if ($flags & Relay::PAYLOAD_RAW && \is_scalar($payload)) {
             if (!$this->relay instanceof SendPackageRelayInterface) {
                 $this->relay->send((string)$payload, $flags);
             } else {
@@ -60,14 +64,9 @@ class RPC
                 );
             }
         } else {
-            $body = json_encode($payload);
+            $body = \json_encode($payload);
             if ($body === false) {
-                throw new Exceptions\ServiceException(
-                    sprintf(
-                        'json encode: %s',
-                        json_last_error_msg()
-                    )
-                );
+                throw new ServiceException(\sprintf('json encode: %s', \json_last_error_msg()));
             }
 
             if (!$this->relay instanceof SendPackageRelayInterface) {
@@ -80,14 +79,14 @@ class RPC
         $body = (string)$this->relay->receiveSync($flags);
 
         if (!($flags & Relay::PAYLOAD_CONTROL)) {
-            throw new Exceptions\TransportException('rpc response header is missing');
+            throw new TransportException('rpc response header is missing');
         }
 
         $rpc = unpack('Ps', substr($body, -8));
         $rpc['m'] = substr($body, 0, -8);
 
         if ($rpc['m'] !== $method || $rpc['s'] !== $this->seq) {
-            throw new Exceptions\TransportException(
+            throw new TransportException(
                 sprintf(
                     'rpc method call, expected %s:%d, got %s%d',
                     $method,
@@ -120,12 +119,9 @@ class RPC
     protected function handleBody(string $body, int $flags)
     {
         if ($flags & Relay::PAYLOAD_ERROR && $flags & Relay::PAYLOAD_RAW) {
-            throw new Exceptions\ServiceException(
-                sprintf(
-                    "error '$body' on '%s'",
-                    $this->relay instanceof StringableRelayInterface ? (string)$this->relay : get_class($this->relay)
-                )
-            );
+            $relay = $this->relay instanceof \Stringable ? (string)$this->relay : \get_class($this->relay);
+
+            throw new ServiceException(\sprintf("error '$body' on '%s'", $relay));
         }
 
         if ($flags & Relay::PAYLOAD_RAW) {

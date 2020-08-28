@@ -8,7 +8,7 @@
 
 declare(strict_types=1);
 
-namespace Spiral\Tests;
+namespace Spiral\Tests\Goridge;
 
 use Exception;
 use PHPUnit\Framework\TestCase;

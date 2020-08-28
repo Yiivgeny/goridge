@@ -8,12 +8,12 @@
 
 declare(strict_types=1);
 
-namespace Spiral\Tests\Legacy;
+namespace Spiral\Tests\Goridge\Legacy;
 
 use Spiral\Goridge\RPC;
 use Spiral\Goridge\SocketRelay;
 
-class UnixSocketTestIgnored extends \Spiral\Tests\UnixSocketTestIgnored
+class UnixSocketTestIgnored extends \Spiral\Tests\Goridge\UnixSocketTestIgnored
 {
     protected function makeRPC(): RPC
     {

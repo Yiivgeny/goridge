@@ -1,40 +1,55 @@
 {
-  "name": "spiral/goridge",
-  "type": "goridge",
-  "description": "High-performance PHP-to-Golang RPC bridge",
-  "license": "MIT",
-  "authors": [
-    {
-      "name": "Anton Titov / Wolfy-J",
-      "email": "wolfy.jd@gmail.com"
-    }
-  ],
-  "require": {
-    "php": ">=7.2",
-    "ext-json": "*"
-  },
-  "require-dev": {
-    "phpunit/phpunit": "~8.0",
-    "spiral/code-style": "^1.0",
-    "phpstan/phpstan": "^0.12.23"
-  },
-  "autoload": {
-    "psr-4": {
-      "Spiral\\Goridge\\": "src/"
+    "name": "spiral/goridge",
+    "type": "goridge",
+    "description": "High-performance PHP-to-Golang RPC bridge",
+    "license": "MIT",
+    "homepage": "https://spiral.dev",
+    "support": {
+        "issues": "https://github.com/spiral/goridge/issues",
+        "source": "https://github.com/spiral/goridge"
     },
-    "files": [
-      "src/functions.php"
-    ]
-  },
-  "config": {
-    "vendor-dir": "vendor_php"
-  },
-  "scripts": {
-    "analyze": "phpstan analyze -c ./phpstan.neon.dist --no-progress --ansi"
-  },
-  "autoload-dev": {
-    "psr-4": {
-      "Spiral\\Tests\\": "tests/Cases/"
-    }
-  }
+    "authors": [
+        {
+            "name": "Anton Titov / Wolfy-J",
+            "email": "wolfy.jd@gmail.com"
+        }
+    ],
+    "require": {
+        "php": "^7.2|^8.0",
+        "ext-json": "*",
+        "symfony/polyfill-php80": "^1.18"
+    },
+    "require-dev": {
+        "ext-sockets": "*",
+        "phpunit/phpunit": "~8.0",
+        "spiral/code-style": "^1.0",
+        "phpstan/phpstan": "^0.12.23"
+    },
+    "autoload": {
+        "psr-4": {
+            "Spiral\\Goridge\\": "src"
+        },
+        "files": [
+            "src/polyfill.php"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Spiral\\Tests\\Goridge\\": "tests/Cases"
+        }
+    },
+    "scripts": {
+        "analyze": "phpstan analyze -c ./phpstan.neon.dist --no-progress --ansi"
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-master": "2.5.x-dev"
+        }
+    },
+    "config": {
+        "vendor-dir": "vendor_php",
+        "sort-packages": true
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
 }

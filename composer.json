@@ -23,7 +23,8 @@
         "ext-sockets": "*",
         "phpunit/phpunit": "~8.0",
         "spiral/code-style": "^1.0",
-        "phpstan/phpstan": "^0.12.23"
+        "phpstan/phpstan": "^0.12.23",
+        "vimeo/psalm": "^3.14"
     },
     "autoload": {
         "psr-4": {
@@ -39,7 +40,8 @@
         }
     },
     "scripts": {
-        "analyze": "phpstan analyze -c ./phpstan.neon.dist --no-progress --ansi"
+        "analyze": "phpstan analyze -c ./phpstan.neon.dist --no-progress --ansi",
+        "psalm": "psalm --show-info=true"
     },
     "extra": {
         "branch-alias": {

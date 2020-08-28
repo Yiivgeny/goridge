@@ -11,25 +11,30 @@ declare(strict_types=1);
 
 namespace Spiral\Goridge\Relay;
 
-interface PayloadInterface
+final class Payload
 {
+    /**
+     * Must be set when data is json (default value).
+     */
+    public const TYPE_JSON = 0;
+
     /**
      * Must be set when no data to be sent.
      */
-    public const PAYLOAD_NONE    = 2;
+    public const TYPE_EMPTY = 2;
 
     /**
      * Must be set when data binary data.
      */
-    public const PAYLOAD_RAW     = 4;
+    public const TYPE_RAW = 4;
 
     /**
      * Must be set when data is error string or structure.
      */
-    public const PAYLOAD_ERROR   = 8;
+    public const TYPE_ERROR = 8;
 
     /**
      * Defines that associated data must be treated as control data.
      */
-    public const PAYLOAD_CONTROL = 16;
+    public const TYPE_CONTROL = 16;
 }

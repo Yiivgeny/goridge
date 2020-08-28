@@ -15,16 +15,7 @@ use Spiral\Goridge\Exception\InvalidArgumentException;
 use Spiral\Goridge\Exception\PrefixException;
 use Spiral\Goridge\Exception\TransportException;
 
-/**
- * Communicates with remote server/client over streams using byte payload:
- *
- * [ prefix       ][ payload                               ]
- * [ 1+8+8 bytes  ][ message length|LE ][message length|BE ]
- *
- * prefix:
- * [ flag       ][ message length, unsigned int 64bits, LittleEndian ]
- */
-class StreamRelay extends Relay implements SendPackageRelayInterface
+class StreamRelay extends Relay
 {
     /**
      * @var string
@@ -76,6 +67,8 @@ class StreamRelay extends Relay implements SendPackageRelayInterface
         $this->assertResourceIsWritable($out);
 
         [$this->in, $this->out] = [$in, $out];
+
+        parent::__construct();
     }
 
     /**
@@ -177,14 +170,22 @@ class StreamRelay extends Relay implements SendPackageRelayInterface
     }
 
     /**
+     * @param resource $stream
+     * @return string
+     */
+    private function getUriString($stream): string
+    {
+        $meta = \stream_get_meta_data($stream);
+
+        return \str_replace('php://', '', $meta);
+    }
+
+    /**
      * {@inheritDoc}
      */
     public function __toString(): string
     {
-        $input = \str_replace('php://', '', \stream_get_meta_data($this->in)['uri']);
-        $output = \str_replace('php://', '', \stream_get_meta_data($this->out)['uri']);
-
-        return 'pipes://' . $input . ':' . $output;
+        return \sprintf('pipes://%s:%s', $this->getUriString($this->in), $this->getUriString($this->out));
     }
 
     /**

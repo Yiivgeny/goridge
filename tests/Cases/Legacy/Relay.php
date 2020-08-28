@@ -24,9 +24,19 @@ class Relay implements RelayInterface
         return (string)$this->relay;
     }
 
-    public function send($payload, int $flags = null)
+    public function send($payload, int $flags = null): void
     {
-        return $this->relay->send($payload, $flags);
+        $this->relay->send($payload, $flags);
+    }
+
+    public function batch(iterable $payload): void
+    {
+        $this->relay->batch($payload);
+    }
+
+    public function receive(): array
+    {
+        return $this->relay->receive();
     }
 
     public function receiveSync(int &$flags = null)

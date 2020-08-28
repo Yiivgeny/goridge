@@ -79,7 +79,7 @@ class Factory implements FactoryInterface
      */
     public function remove(callable $match): void
     {
-        $filter = static function (ProviderInterface $matcher) use ($match) {
+        $filter = static function (ProviderInterface $matcher) use ($match): bool {
             return ! $match($matcher);
         };
 
@@ -116,7 +116,7 @@ class Factory implements FactoryInterface
         $matcher = $this->lookup($protocol);
 
         if ($matcher === null) {
-            throw new RelayFactoryException(\sprintf(self::ERROR_INVALID_PROTOCOL, $protocol), 0x02);
+            throw new RelayFactoryException(\sprintf(self::ERROR_INVALID_PROTOCOL, $protocol), 0x01);
         }
 
         return $matcher->create($protocol, $signature);
@@ -131,7 +131,7 @@ class Factory implements FactoryInterface
         $chunks = \explode('://', $connection);
 
         if (\count($chunks) !== 2) {
-            throw new RelayFactoryException(\sprintf(self::ERROR_INVALID_FORMAT, $connection));
+            throw new RelayFactoryException(\sprintf(self::ERROR_INVALID_FORMAT, $connection), 0x02);
         }
 
         return $chunks;

@@ -9,8 +9,8 @@
 
 declare(strict_types=1);
 
-namespace Spiral\Goridge\Exception;
+namespace Spiral\Goridge\Protocol;
 
-class RelayFactoryException extends RelayException
+interface ProtocolInterface extends DecoderInterface, EncoderInterface
 {
 }

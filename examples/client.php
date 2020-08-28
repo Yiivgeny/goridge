@@ -12,18 +12,12 @@ declare(strict_types=1);
 use Spiral\Goridge\Relay\Factory;
 use Spiral\Goridge\RPC;
 
-require __DIR__ . '/../vendor_php/autoload.php';
+require __DIR__ . '/vendor/autoload.php';
 
-/** @var \Spiral\Goridge\SocketRelay $transport */
-$transport = (new Factory())->create('tcp://127.0.0.1:6001');
+$factory = new Factory();
 
-$transport->connect();
-$transport->close();
-$transport->connect();
+$rpc = new RPC(
+    $factory->create('tcp://127.0.0.1:6001')
+);
 
-
-$rpc = new RPC($transport);
-
-$response = $rpc->call('App.Hi', 'Antony');
-
-echo $response;
+echo $rpc->call('App.Hi', 'Antony');

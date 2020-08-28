@@ -48,7 +48,8 @@ class RPC
     public function call(string $method, $payload, int $flags = 0)
     {
         $header = $method . \pack('P', $this->seq);
-        if (!$this->relay instanceof SendPackageRelayInterface) {
+
+        if (! $this->relay instanceof SendPackageRelayInterface) {
             $this->relay->send($header, Relay::PAYLOAD_CONTROL | Relay::PAYLOAD_RAW);
         }
 

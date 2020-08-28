@@ -1,9 +1,11 @@
 .idea/
 composer.lock
 vendor/
+lsp/
 clover.xml
 coveralls.json
 tests/server.exe
 tests/server
 **/vendor
-vendor_php
+vendor_php/
+.phpunit.result.cache

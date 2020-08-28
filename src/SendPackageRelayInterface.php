@@ -11,21 +11,20 @@ declare(strict_types=1);
 
 namespace Spiral\Goridge;
 
+/**
+ * @deprecated since 2.5 and will be removed in 3.0
+ */
 interface SendPackageRelayInterface
 {
     /**
      * Send message package with header and body.
      *
-     * @param string   $headerPayload
+     * @deprecated since 2.5 and will be removed in 3.0. Please use {@see RelayInterface::batch()} method instead.
+     * @param string $header
      * @param int|null $headerFlags
-     * @param string   $bodyPayload
+     * @param string $body
      * @param int|null $bodyFlags
-     * @return mixed
+     * @return void
      */
-    public function sendPackage(
-        string $headerPayload,
-        ?int $headerFlags,
-        string $bodyPayload,
-        ?int $bodyFlags = null
-    );
+    public function sendPackage(string $header, ?int $headerFlags, string $body, ?int $bodyFlags = null): void;
 }

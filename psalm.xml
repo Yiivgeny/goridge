@@ -1,15 +1,24 @@
 <?xml version="1.0"?>
 <psalm
-    errorLevel="8"
-    resolveFromConfigFile="true"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xmlns="https://getpsalm.org/schema/config"
     xsi:schemaLocation="https://getpsalm.org/schema/config vendor_php/vimeo/psalm/config.xsd"
+
+    errorLevel="8"
+    hoistConstants="true"
+    resolveFromConfigFile="true"
+    allowPhpStormGenerics="true"
+    findUnusedPsalmSuppress="true"
+    findUnusedVariablesAndParams="true"
+    ensureArrayStringOffsetsExist="true"
+    addParamDefaultToDocblockType="true"
 >
     <projectFiles>
         <directory name="src" />
         <ignoreFiles>
             <directory name="vendor_php" />
+            <directory name="tests" />
+            <directory name="resources" />
         </ignoreFiles>
     </projectFiles>
 </psalm>

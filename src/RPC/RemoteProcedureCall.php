@@ -11,7 +11,6 @@ declare(strict_types=1);
 
 namespace Spiral\Goridge\RPC;
 
-use Spiral\Goridge\Relay\Payload;
 use Spiral\Goridge\RelayInterface;
 use Spiral\Goridge\Sequence\IntSequence;
 use Spiral\Goridge\Sequence\SequenceInterface;
@@ -39,6 +38,18 @@ abstract class RemoteProcedureCall implements RemoteProcedureCallInterface, \Str
     }
 
     /**
+     * @return string
+     */
+    public function __toString(): string
+    {
+        if ($this->relay instanceof \Stringable) {
+            return (string)$this->relay;
+        }
+
+        return '<' . \get_class($this->relay) . '>';
+    }
+
+    /**
      * @return int|string
      */
     protected function sequence()
@@ -52,17 +63,5 @@ abstract class RemoteProcedureCall implements RemoteProcedureCallInterface, \Str
     protected function increment(): void
     {
         $this->sequence->next();
-    }
-
-    /**
-     * @return string
-     */
-    public function __toString(): string
-    {
-        if ($this->relay instanceof \Stringable) {
-            return (string)$this->relay;
-        }
-
-        return '<' . \get_class($this->relay) . '>';
     }
 }

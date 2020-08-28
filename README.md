@@ -43,19 +43,31 @@ $ composer require spiral/goridge
 
 Example
 --------
+
 ```php
 <?php
-use Spiral\Goridge;
-require "vendor/autoload.php";
 
-$rpc = new Goridge\RPC(new Goridge\SocketRelay("127.0.0.1", 6001));
-//or, using factory:
-$tcpRPC = Goridge\Relay::create('tcp://127.0.0.1:6001');
-$unixRPC = Goridge\Relay::create('unix:///tmp/rpc.sock');
-$streamRPC = Goridge\Relay::create('pipes://stdin:stdout');
+require __DIR__ . '/vendor/autoload.php';
+
+use Spiral\Goridge\RPC;
+use Spiral\Goridge\SocketRelay;
+use Spiral\Goridge\Relay\Factory;
+
+$transport = new SocketRelay('127.0.0.1', 6001);
+
+// or, using factory:
+
+$factory = new Factory();
+
+$tcp = $factory->create('tcp://127.0.0.1:6001');
+$unix = $factory->create('unix:///tmp/rpc.sock');
+$stream = $factory->create('pipes://stdin:stdout');
+
+$rpc = new RPC($transport);
 
 echo $rpc->call("App.Hi", "Antony");
 ```
+
 > Factory applies the next format: `<protocol>://<arg1>:<arg2>`
 
 ```go

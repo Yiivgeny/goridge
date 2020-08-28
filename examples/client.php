@@ -9,15 +9,30 @@
 
 declare(strict_types=1);
 
-use Spiral\Goridge\Relay\Factory;
+use Spiral\Goridge\Relay;
 use Spiral\Goridge\RPC;
 
-require __DIR__ . '/vendor/autoload.php';
+/**
+ * Require Composer autoloader script
+ */
+$vendor = \is_file(__DIR__ . '/vendor/autoload.php')
+    ? __DIR__ . '/vendor/autoload.php'
+    : __DIR__ . '/../vendor_php/autoload.php';
 
-$factory = new Factory();
+require $vendor;
 
-$rpc = new RPC(
-    $factory->create('tcp://127.0.0.1:6001')
-);
+/**
+ * Creates a new RPC client
+ */
+$rpc = new RPC(Relay::create('tcp://127.0.0.1:6001'));
 
+/**
+ * Execute remote method ({@link ./server.go:15}):
+ * <code>
+ *  func (a *App) Hi(name string, r *string) error {
+ *      *r = fmt.Sprintf("Hello, %s!", name)
+ *      return nil
+ *  }
+ * </code>
+ */
 echo $rpc->call('App.Hi', 'Antony');

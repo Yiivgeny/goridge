@@ -11,7 +11,10 @@ declare(strict_types=1);
 
 namespace Spiral\Goridge\RPC;
 
+use Spiral\Goridge\Relay\Payload;
 use Spiral\Goridge\RelayInterface;
+use Spiral\Goridge\Sequence\IntSequence;
+use Spiral\Goridge\Sequence\SequenceInterface;
 
 abstract class RemoteProcedureCall implements RemoteProcedureCallInterface, \Stringable
 {
@@ -21,11 +24,34 @@ abstract class RemoteProcedureCall implements RemoteProcedureCallInterface, \Str
     protected $relay;
 
     /**
-     * @param RelayInterface $relay
+     * @var SequenceInterface
      */
-    public function __construct(RelayInterface $relay)
+    private $sequence;
+
+    /**
+     * @param RelayInterface $relay
+     * @param SequenceInterface|null $sequence
+     */
+    public function __construct(RelayInterface $relay, SequenceInterface $sequence = null)
     {
         $this->relay = $relay;
+        $this->sequence = $sequence ?? new IntSequence();
+    }
+
+    /**
+     * @return int|string
+     */
+    protected function sequence()
+    {
+        return $this->sequence->current();
+    }
+
+    /**
+     * @return void
+     */
+    protected function increment(): void
+    {
+        $this->sequence->next();
     }
 
     /**

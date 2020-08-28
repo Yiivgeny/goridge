@@ -50,12 +50,12 @@ class RPC extends RemoteProcedureCall
     /**
      * @var int
      */
-    private $seq = 0;
+    private const HEADER_PAYLOAD_TYPE = Payload::TYPE_CONTROL | Payload::TYPE_RAW;
 
     /**
      * @param string $method
-     * @param mixed  $payload An binary data or array of arguments for complex types.
-     * @param int    $flags   Payload control flags.
+     * @param mixed $payload An binary data or array of arguments for complex types.
+     * @param int $flags Payload control flags.
      * @return mixed
      * @throws RelayException
      */
@@ -65,7 +65,7 @@ class RPC extends RemoteProcedureCall
 
         [$body, $flags] = $this->relay->receive();
 
-        if (!($flags & Payload::TYPE_CONTROL)) {
+        if (! ($flags & Payload::TYPE_CONTROL)) {
             throw new TransportException(\sprintf(self::ERROR_HEADER_MISSING, $this));
         }
 
@@ -77,18 +77,20 @@ class RPC extends RemoteProcedureCall
 
         $result['m'] = \substr($body, 0, -8);
 
-        if ($result['m'] !== $method || $result['s'] !== $this->seq) {
+        if ($result['m'] !== $method || $result['s'] !== $this->sequence()) {
             $message = \vsprintf(self::ERROR_MISMATCH_METHOD, [
-                $method, $this->seq,
+                $method,
+                $this->sequence(),
                 $this,
-                $result['m'], $result['s']
+                $result['m'],
+                $result['s'],
             ]);
 
             throw new TransportException($message);
         }
 
         // Request id++
-        $this->seq++;
+        $this->increment();
 
         // Wait for the response
         [$body, $flags] = $this->relay->receive();
@@ -103,15 +105,41 @@ class RPC extends RemoteProcedureCall
      */
     private function send(string $method, $payload, int $flags): void
     {
-        $package = [$method . \pack('P', $this->seq) => Payload::TYPE_CONTROL | Payload::TYPE_RAW];
+        // To pass to the batching send method, any iterator is required
+        // that can store the same keys.
+        //
+        // This feature can be implemented with a generator.
+        $package = function () use ($method, $payload, $flags) {
+            yield from $this->packHeader($method);
+            yield from $this->packPayload($payload, $flags);
+        };
 
+        $this->relay->batch($package());
+    }
+
+    /**
+     * @param string $method
+     * @return iterable
+     */
+    private function packHeader(string $method): iterable
+    {
+        yield $method . \pack('P', $this->sequence()) => self::HEADER_PAYLOAD_TYPE;
+    }
+
+    /**
+     * @param mixed $payload
+     * @param int $flags
+     * @return iterable
+     */
+    private function packPayload($payload, int $flags): iterable
+    {
         if ($flags & Payload::TYPE_RAW && \is_scalar($payload)) {
-            $package[(string)$payload] = $flags;
-        } else {
-            $package[$this->jsonEncode($payload)] = Payload::TYPE_JSON;
+            yield (string)$payload => $flags;
+
+            return;
         }
 
-        $this->relay->batch($package);
+        yield $this->jsonEncode($payload) => Payload::TYPE_JSON;
     }
 
     /**
@@ -119,7 +147,6 @@ class RPC extends RemoteProcedureCall
      *
      * @param string $body
      * @param int $flags
-     *
      * @return mixed
      * @throws ServiceException
      */

@@ -15,13 +15,16 @@ use Spiral\Goridge\Exception\RelayException;
 use Spiral\Goridge\Exception\ServiceException;
 use Spiral\Goridge\Exception\TransportException;
 use Spiral\Goridge\Relay\Payload;
-use Spiral\Goridge\RelayInterface as Relay;
+use Spiral\Goridge\RPC\InteractWithJsonTrait;
+use Spiral\Goridge\RPC\RemoteProcedureCall;
 
 /**
  * RPC bridge to Golang net/rpc package over Goridge protocol.
  */
-class RPC
+class RPC extends RemoteProcedureCall
 {
+    use InteractWithJsonTrait;
+
     /**
      * @var string
      */
@@ -35,27 +38,19 @@ class RPC
     /**
      * @var string
      */
+    private const ERROR_BAD_HEADER = 'Invalid RPC server %s package header';
+
+    /**
+     * @var string
+     */
     private const ERROR_MISMATCH_METHOD =
         'During a call method %s:%d on the RPC server %s, it ' .
         'returned an incorrect response indicating method %s:%d';
 
     /**
-     * @var Relay
-     */
-    private $relay;
-
-    /**
      * @var int
      */
     private $seq = 0;
-
-    /**
-     * @param Relay $relay
-     */
-    public function __construct(Relay $relay)
-    {
-        $this->relay = $relay;
-    }
 
     /**
      * @param string $method
@@ -64,24 +59,29 @@ class RPC
      * @return mixed
      * @throws RelayException
      */
-    public function call(string $method, $payload, int $flags = 0)
+    public function call(string $method, $payload, int $flags = Payload::TYPE_JSON)
     {
         $this->send($method, $payload, $flags);
 
         [$body, $flags] = $this->relay->receive();
 
         if (!($flags & Payload::TYPE_CONTROL)) {
-            throw new TransportException(\sprintf(self::ERROR_HEADER_MISSING, $this->getRelayAsString()));
+            throw new TransportException(\sprintf(self::ERROR_HEADER_MISSING, $this));
         }
 
-        $rpc = \unpack('Ps', \substr($body, -8));
-        $rpc['m'] = \substr($body, 0, -8);
+        $result = \unpack('Ps', \substr($body, -8));
 
-        if ($rpc['m'] !== $method || $rpc['s'] !== $this->seq) {
+        if (! \is_array($result)) {
+            throw new TransportException(\sprintf(self::ERROR_BAD_HEADER, $this), 0x01);
+        }
+
+        $result['m'] = \substr($body, 0, -8);
+
+        if ($result['m'] !== $method || $result['s'] !== $this->seq) {
             $message = \vsprintf(self::ERROR_MISMATCH_METHOD, [
                 $method, $this->seq,
-                $this->getRelayAsString(),
-                $rpc['m'], $rpc['s']
+                $this,
+                $result['m'], $result['s']
             ]);
 
             throw new TransportException($message);
@@ -101,7 +101,7 @@ class RPC
      * @param mixed $payload
      * @param int $flags
      */
-    private function send(string $method, $payload, int $flags = 0): void
+    private function send(string $method, $payload, int $flags): void
     {
         $package = [$method . \pack('P', $this->seq) => Payload::TYPE_CONTROL | Payload::TYPE_RAW];
 
@@ -112,58 +112,6 @@ class RPC
         }
 
         $this->relay->batch($package);
-    }
-
-    /**
-     * @param mixed $payload
-     * @return string
-     * @throws ServiceException
-     */
-    private function jsonEncode($payload): string
-    {
-        try {
-            $body = @\json_encode($payload, $this->getJsonOptions());
-
-            if (\json_last_error() !== \JSON_ERROR_NONE) {
-                throw new \JsonException(\json_last_error_msg());
-            }
-        } catch (\Throwable $e) {
-            throw new ServiceException($e->getMessage(), 0x01, $e);
-        }
-
-        return $body;
-    }
-
-    /**
-     * @param string $json
-     * @return mixed
-     * @throws ServiceException
-     */
-    private function jsonDecode(string $json)
-    {
-        try {
-            $result = @\json_decode($json, true, 512, $this->getJsonOptions());
-
-            if (\json_last_error() !== \JSON_ERROR_NONE) {
-                throw new \JsonException(\json_last_error_msg());
-            }
-        } catch (\Throwable $e) {
-            throw new ServiceException($e->getMessage(), 0x02, $e);
-        }
-
-        return $result;
-    }
-
-    /**
-     * @return int
-     */
-    private function getJsonOptions(): int
-    {
-        if (\defined('JSON_THROW_ON_ERROR')) {
-            return \JSON_THROW_ON_ERROR;
-        }
-
-        return 0;
     }
 
     /**
@@ -178,7 +126,7 @@ class RPC
     protected function handleBody(string $body, int $flags)
     {
         if ($flags & Payload::TYPE_ERROR && $flags & Payload::TYPE_RAW) {
-            throw new ServiceException(\sprintf(self::ERROR_SERVER_ERROR, $this->getRelayAsString(), $body));
+            throw new ServiceException(\sprintf(self::ERROR_SERVER_ERROR, $this, $body));
         }
 
         if ($flags & Payload::TYPE_RAW) {
@@ -186,17 +134,5 @@ class RPC
         }
 
         return $this->jsonDecode($body);
-    }
-
-    /**
-     * @return string
-     */
-    private function getRelayAsString(): string
-    {
-        if ($this->relay instanceof \Stringable) {
-            return (string)$this->relay;
-        }
-
-        return \get_class($this->relay);
     }
 }

@@ -44,14 +44,14 @@ abstract class Protocol implements ProtocolInterface
      * @param iterable $payload
      * @return array
      *
-     * @psalm-param iterable<string, Payload::TYPE_*> $payload
+     * @psalm-param iterable<string, Payload::TYPE_*|null> $payload
      * @psalm-return TEncodedMessage
      */
     public static function encodeBatch(EncoderInterface $encoder, iterable $payload): array
     {
         [$buffer, $length] = ['', 0];
-
         foreach ($payload as $message => $flags) {
+            /** @psalm-suppress ArgumentTypeCoercion */
             $encoded = $encoder->encode((string)$message, (int)$flags);
 
             /** @psalm-suppress PossiblyInvalidOperand */

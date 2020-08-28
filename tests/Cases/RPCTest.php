@@ -228,7 +228,7 @@ abstract class RPCTest extends TestCase
     public function testJsonException(): void
     {
         $this->expectException(ServiceException::class);
-        $this->expectExceptionMessageMatches('#.*json encode.*#');
+        $this->expectExceptionMessage('Malformed UTF-8 characters, possibly incorrectly encoded');
 
         $conn = $this->makeRPC();
 

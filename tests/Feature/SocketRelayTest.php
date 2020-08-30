@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Spiral\Tests\Goridge;
+namespace Spiral\Tests\Goridge\Feature;
 
 use PHPUnit\Framework\TestCase;
 use Spiral\Goridge\Exceptions\InvalidArgumentException;

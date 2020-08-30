@@ -21,9 +21,11 @@
     },
     "require-dev": {
         "ext-sockets": "*",
+        "phpbench/phpbench": "^0.17",
         "ramsey/uuid": "^4.1",
         "phpunit/phpunit": "~8.0",
         "spiral/code-style": "^1.0",
+        "fzaninotto/faker": "^1.9",
         "phpstan/phpstan": "^0.12.23",
         "vimeo/psalm": "^3.14"
     },
@@ -37,12 +39,16 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Spiral\\Tests\\Goridge\\": "tests/Cases"
+            "Spiral\\Tests\\Goridge\\Feature\\": "tests/Feature",
+            "Spiral\\Tests\\Goridge\\Unit\\": "tests/Unit"
         }
     },
     "scripts": {
         "analyze": "phpstan analyze -c ./phpstan.neon.dist --no-progress --ansi",
-        "psalm": "psalm --show-info=true"
+        "psalm": "psalm --show-info=true",
+        "bench": [
+            "phpbench run benchmarks/MessageResponseFormatBench.php --progress=dots --report=aggregate"
+        ]
     },
     "extra": {
         "branch-alias": {

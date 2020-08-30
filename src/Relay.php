@@ -11,9 +11,10 @@ declare(strict_types=1);
 
 namespace Spiral\Goridge;
 
-use Spiral\Goridge\Protocol\GoridgeV2;
-use Spiral\Goridge\Protocol\Protocol;
-use Spiral\Goridge\Protocol\ProtocolInterface;
+use Spiral\Goridge\Relay\Protocol\DecodedMessageInterface;
+use Spiral\Goridge\Relay\Protocol\GoridgeV2;
+use Spiral\Goridge\Relay\Protocol\Protocol;
+use Spiral\Goridge\Relay\Protocol\ProtocolInterface;
 use Spiral\Goridge\Relay\Factory;
 use Spiral\Goridge\Relay\Payload;
 use Spiral\Goridge\Relay\SocketProvider;
@@ -87,9 +88,9 @@ abstract class Relay implements RelayInterface, SendPackageRelayInterface, Strin
      */
     public function batch(iterable $payload): void
     {
-        [$message, $size] = Protocol::encodeBatch($this->protocol, $payload);
+        $message = Protocol::encodeBatch($this->protocol, $payload);
 
-        $this->write($message, $size);
+        $this->write($message->body, $message->size);
     }
 
     /**
@@ -105,7 +106,10 @@ abstract class Relay implements RelayInterface, SendPackageRelayInterface, Strin
             $stream->send($chunk);
         }
 
-        return $stream->getReturn();
+        /** @var DecodedMessageInterface $message */
+        $message = $stream->getReturn();
+
+        return [$message->body, $message->flags];
     }
 
     /**

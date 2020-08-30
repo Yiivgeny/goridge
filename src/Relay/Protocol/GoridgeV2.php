@@ -9,7 +9,7 @@
 
 declare(strict_types=1);
 
-namespace Spiral\Goridge\Protocol;
+namespace Spiral\Goridge\Relay\Protocol;
 
 use Spiral\Goridge\Exception\TransportException;
 use Spiral\Goridge\Relay\Payload;
@@ -45,17 +45,17 @@ class GoridgeV2 extends Protocol
     /**
      * @var string
      */
-    private const ERROR_DECODE_EMPTY_DATA = 'Unable to send non empty data with PAYLOAD_NONE flag';
+    private const ERROR_ENCODE_EMPTY_DATA = 'Unable to send non empty data with PAYLOAD_NONE flag';
 
     /**
      * @var string
      */
-    private const ERROR_DECODE = 'Unable to pack message data';
+    private const ERROR_ENCODE = 'Unable to pack message data';
 
     /**
      * @var int
      */
-    private const PREFIX_SIZE = 1 + 8 + 8;
+    public const HEADER_SIZE = 1 + 8 + 8;
 
     /**
      * @var int
@@ -73,9 +73,9 @@ class GoridgeV2 extends Protocol
     /**
      * {@inheritDoc}
      */
-    public function encode(string $message, int $flags = Payload::TYPE_JSON): array
+    public function encode(string $body, int $flags = Payload::TYPE_JSON): EncodedMessageInterface
     {
-        return $this->packMessage($message, $flags);
+        return $this->packMessage($body, $flags);
     }
 
     /**
@@ -84,32 +84,27 @@ class GoridgeV2 extends Protocol
      *
      * @param string $payload
      * @param int $flags
-     * @return array
-     *
-     * @psalm-return TEncodedMessage
+     * @return EncodedMessage
      */
-    private function packMessage(string $payload, int $flags): array
+    private function packMessage(string $payload, int $flags): EncodedMessage
     {
         $size = \strlen($payload);
 
         if ($flags & Payload::TYPE_EMPTY && $size !== 0) {
-            throw new TransportException(self::ERROR_DECODE_EMPTY_DATA);
+            throw new TransportException(self::ERROR_ENCODE_EMPTY_DATA, 0x01);
         }
 
-        $body = \pack('CPJ', $flags, $size, $size);
+        $body = @\pack('CPJ', $flags, $size, $size);
 
         if (! \is_string($body)) {
-            throw new TransportException(self::ERROR_DECODE);
+            throw new TransportException(self::ERROR_ENCODE, 0x02);
         }
 
         if (! ($flags & Payload::TYPE_EMPTY)) {
             $body .= $payload;
         }
 
-        return [
-            static::ENCODED_MESSAGE_BODY => $body,
-            static::ENCODED_MESSAGE_SIZE => $size + self::PREFIX_SIZE,
-        ];
+        return new EncodedMessage($body, $size + self::HEADER_SIZE);
     }
 
     /**
@@ -123,10 +118,7 @@ class GoridgeV2 extends Protocol
 
         yield from $body = $this->readBody($size);
 
-        return [
-            static::DECODED_MESSAGE_BODY  => $body->getReturn(),
-            static::DECODED_MESSAGE_FLAGS => $flags,
-        ];
+        return new DecodedMessage($body->getReturn(), $flags);
     }
 
     /**
@@ -139,14 +131,14 @@ class GoridgeV2 extends Protocol
     private function readHeader(): \Generator
     {
         /** @psalm-var array{flags: int, size: int, revs: int}|false $result */
-        $result = \unpack('Cflags/Psize/Jrevs', yield self::PREFIX_SIZE);
+        $result = @\unpack('Cflags/Psize/Jrevs', yield self::HEADER_SIZE);
 
         if (! \is_array($result)) {
-            throw new TransportException(self::ERROR_BAD_HEADER, 0x01);
+            throw new TransportException(self::ERROR_BAD_HEADER, 0x03);
         }
 
         if ($result['size'] !== $result['revs']) {
-            throw new TransportException(self::ERROR_BAD_CHECKSUM, 0x02);
+            throw new TransportException(self::ERROR_BAD_CHECKSUM, 0x04);
         }
 
         return [$result['size'], $result['flags']];

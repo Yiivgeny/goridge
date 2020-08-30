@@ -9,24 +9,16 @@
 
 declare(strict_types=1);
 
-namespace Spiral\Goridge\Protocol;
+namespace Spiral\Goridge\Relay\Protocol;
 
-use Spiral\Goridge\Relay\Payload;
-
-/**
- * @psalm-import-type TDecodedMessage from DecoderInterface
- * @psalm-import-type TEncodedMessage from EncoderInterface
- */
 abstract class Protocol implements ProtocolInterface
 {
     /**
      * @param DecoderInterface $decoder
      * @param \Closure $reader
-     * @return array
-     *
-     * @psalm-return TDecodedMessage
+     * @return DecodedMessageInterface
      */
-    public static function decodeThrough(DecoderInterface $decoder, \Closure $reader): array
+    public static function decodeThrough(DecoderInterface $decoder, \Closure $reader): DecodedMessageInterface
     {
         $stream = $decoder->decode();
 
@@ -42,26 +34,23 @@ abstract class Protocol implements ProtocolInterface
     /**
      * @param EncoderInterface $encoder
      * @param iterable $payload
-     * @return array
+     * @return EncodedMessageInterface
      *
      * @psalm-param iterable<string, Payload::TYPE_*|null> $payload
      * @psalm-return TEncodedMessage
      */
-    public static function encodeBatch(EncoderInterface $encoder, iterable $payload): array
+    public static function encodeBatch(EncoderInterface $encoder, iterable $payload): EncodedMessageInterface
     {
-        [$buffer, $length] = ['', 0];
+        [$buffer, $size] = ['', 0];
+
         foreach ($payload as $message => $flags) {
-            /** @psalm-suppress ArgumentTypeCoercion */
             $encoded = $encoder->encode((string)$message, (int)$flags);
 
             /** @psalm-suppress PossiblyInvalidOperand */
-            $length += $encoded[static::ENCODED_MESSAGE_SIZE];
-            $buffer .= $encoded[static::ENCODED_MESSAGE_BODY];
+            $size += $encoded->size;
+            $buffer .= $encoded->body;
         }
 
-        return [
-            static::ENCODED_MESSAGE_BODY => $buffer,
-            static::ENCODED_MESSAGE_SIZE => $length,
-        ];
+        return new EncodedMessage($buffer, $size);
     }
 }

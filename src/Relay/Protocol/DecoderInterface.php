@@ -9,37 +9,13 @@
 
 declare(strict_types=1);
 
-namespace Spiral\Goridge\Protocol;
+namespace Spiral\Goridge\Relay\Protocol;
 
 use Spiral\Goridge\Exception\TransportException;
 use Spiral\Goridge\Relay\Payload;
 
-/**
- * @psalm-type TDecodedMessage = array {
- *  0: string,
- *  1: Payload::TYPE_*
- * }
- */
 interface DecoderInterface
 {
-    /**
-     * The key of the array returned from the {@see \Generator::getReturn()}
-     * which is returned from the {@see DecoderInterface::decode()} method
-     * containing the decoded message body.
-     *
-     * @var int
-     */
-    public const DECODED_MESSAGE_BODY = 0x00;
-
-    /**
-     * The key of the array returned from the {@see \Generator::getReturn()}
-     * which is returned from the {@see DecoderInterface::decode()} method
-     * containing the decoded message flags.
-     *
-     * @var int
-     */
-    public const DECODED_MESSAGE_FLAGS = 0x01;
-
     /**
      * Returns the coroutine for reading from the source. Each "tick" of the
      * iterator passes the length to read from the source. The read value of
@@ -64,10 +40,10 @@ interface DecoderInterface
      *  return $stream->getReturn();
      * </code>
      *
-     * @return \Generator
+     * @return \Generator|DecodedMessageInterface
      * @throws TransportException in case of decoding error.
      *
-     * @psalm-return \Generator<array-key, int, string, TDecodedMessage>
+     * @psalm-return \Generator<array-key, int, string, DecodedMessageInterface>
      */
     public function decode(): \Generator;
 }

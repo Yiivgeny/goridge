@@ -12,7 +12,7 @@ declare(strict_types=1);
 namespace Spiral\Goridge;
 
 use Spiral\Goridge\Exception\RelayException;
-use Spiral\Goridge\Protocol\GoridgeV2;
+use Spiral\Goridge\Relay\Protocol\GoridgeV2;
 use Spiral\Goridge\Relay\Payload;
 
 /**

@@ -9,7 +9,7 @@
 
 declare(strict_types=1);
 
-namespace Spiral\Goridge\Protocol;
+namespace Spiral\Goridge\Relay\Protocol;
 
 interface ProtocolInterface extends DecoderInterface, EncoderInterface
 {
